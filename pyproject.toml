@@ -1,0 +1,25 @@
+[project]
+name = "browserprofile"
+version = "0.1.0"
+description = "Detect local browser profiles and extract/decrypt their on-disk data (cookies, history, bookmarks, autofill, saved passwords)."
+readme = "README.md"
+authors = [
+    { name = "Victor Condino", email = "un1tz3r0@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "pycryptodomex>=3.20",
+    "pyasn1>=0.6",
+    "rich>=13",
+    "secretstorage>=3.3 ; sys_platform == 'linux'",
+]
+
+[project.scripts]
+browserprofile = "browserprofile.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["uv_build>=0.10.0,<0.11.0"]
+build-backend = "uv_build"

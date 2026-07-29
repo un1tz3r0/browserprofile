@@ -1,0 +1,23 @@
+browserprofile
+==============
+
+Portions of this project are derived from yt-dlp (https://github.com/yt-dlp/yt-dlp),
+specifically the browser-profile detection, profile-location, SQLite-access and
+Chromium cookie decryption logic in `yt_dlp/cookies.py`, `yt_dlp/aes.py` and
+related helpers.
+
+yt-dlp is released into the public domain under the Unlicense
+(https://unlicense.org/). No conditions attach to the reuse of that code.
+
+The following modules are ports / adaptations of yt-dlp code:
+  - _aes.py            (from yt_dlp/aes.py + yt_dlp/cookies.py)
+  - _paths.py          (from yt_dlp/cookies.py)
+  - keyrings.py        (from yt_dlp/cookies.py)
+  - chromium_crypto.py (from yt_dlp/cookies.py)
+  - cookies.py         (Chromium/Firefox extraction, from yt_dlp/cookies.py)
+  - profiles.py        (profile-location dicts, from yt_dlp/cookies.py)
+
+The following are original to this project:
+  - history.py, bookmarks.py, autofill.py, passwords.py, records.py
+  - firefox_crypto.py  (Firefox NSS key4.db / logins.json decryption; follows the
+                        firepwd / firefox_decrypt approach, MIT/GPL references)
