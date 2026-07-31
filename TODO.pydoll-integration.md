@@ -11,10 +11,17 @@ that loads **part or all** of a user's real browser profile data (extracted by
 `browserprofile`) into pydoll's throwaway session profile. Result: pydoll can
 seamlessly hit sites the user is already logged into — no re-authentication.
 
-pydoll drives a live browser over the Chrome DevTools Protocol (CDP) and launches
-it against a **fresh temp `--user-data-dir`** (see
-`pydoll/pydoll/browser/managers/temp_dir_manager.py`). It has **no** on-disk
-profile-extraction code of its own — that is exactly the gap `browserprofile` fills.
+pydoll drives a real live browser with it's own window and tabs and everything
+(which can be hidden for things like running on headless servers etc.). It uses
+the Chrome DevTools Protocol (CDP) to communicate with the browser via an in-memory
+local unix-domain socket, using a **temporary user profile (with `--user-data-dir`)** 
+created upon each startup (see `pydoll/pydoll/browser/managers/temp_dir_manager.py`).
+
+It has **no** profile-extraction code of its own — that is exactly the gap 
+`browserprofile` seeks to fill with a proposed extension which would implement extracting
+the user's persistent regular browser profile data and then injecting a copy of it into 
+pydoll's ephemeral profile, to allow seamless interoperability when trasitioning from 
+user-driven manual browsing to automated tool-/agent-directed browsing/scraping.
 
 ## Two injection strategies
 
