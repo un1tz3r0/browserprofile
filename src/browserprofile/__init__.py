@@ -37,6 +37,7 @@ from .records import (
     HistoryEntry,
     Login,
 )
+from .storage import copy_site_storage
 
 __all__ = [
     "list_profiles",
@@ -49,6 +50,7 @@ __all__ = [
     "extract_autofill",
     "extract_logins",
     "extract_credit_cards",
+    "copy_site_storage",
     "Cookie",
     "HistoryEntry",
     "Bookmark",

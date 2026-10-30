@@ -18,6 +18,7 @@ For details -- specifically: the definition of "data stored in them" and "popula
 | Form autofill  | ✅                                                        | ✅      |
 | Saved passwords| ✅ (decrypted)                                            | ✅ (NSS, no master password) |
 | Credit cards   | ✅ (decrypted)                                            | — (not stored) |
+| localStorage / IndexedDB | ✅ (directory copy only, not parsed)            | —       |
 
 ## Notices
 
@@ -94,6 +95,14 @@ each has `.to_dict()` for JSON serialization. Records keep raw structured fields
 (domains, paths, secure/httponly/samesite flags, decrypted values) so downstream
 consumers can replay them — see `TODO.pydoll-integration.md`.
 
+Site storage is the exception: these directories aren't encrypted with the OS
+key, so instead of parsing them `copy_site_storage` seeds another Chromium
+profile with a copy. This is safe while the browser is running:
+
+```python
+bp.copy_site_storage(profile, "/path/to/user-data-dir/Default")
+```
+
 ## Platform support
 
 Profile locations and decryption are implemented for Linux, macOS and Windows
@@ -110,6 +119,7 @@ src/browserprofile/
   bookmarks.py       # bookmarks (chromium JSON / firefox places.sqlite)
   autofill.py        # form autofill
   passwords.py       # saved logins + credit cards
+  storage.py         # localStorage / IndexedDB directory copy (chromium)
   chromium_crypto.py # v10/v11 value decryptor hierarchy (ported)
   keyrings.py        # Linux keyring / macOS Keychain / Windows DPAPI (ported)
   firefox_crypto.py  # Firefox NSS key4.db + logins.json decryption (new)
