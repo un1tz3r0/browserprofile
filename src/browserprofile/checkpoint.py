@@ -77,6 +77,33 @@ def _apply_secrets(kind: str, record: dict, secrets: str) -> dict:
     return record
 
 
+def checkpoint_from_records(
+    records: dict[str, list],
+    *,
+    secrets: str = "hash",
+    sources: Iterable[str] = (),
+) -> dict:
+    """Assemble a checkpoint from already-extracted records.
+
+    ``records`` maps a kind (``"cookies"``, ``"logins"``, …) to a list of record
+    objects (anything with ``.to_dict()``); a kind may be omitted. This is the
+    building block downstream consumers use to snapshot records they obtained
+    some other way — e.g. a live browser's cookies over CDP.
+    """
+    if secrets not in SECRET_MODES:
+        raise ValueError(f"secrets must be one of {SECRET_MODES}, not {secrets!r}")
+    rows = {kind: [] for kind in _EXTRACTORS}
+    for kind, recs in records.items():
+        rows[kind] = [_apply_secrets(kind, record.to_dict(), secrets) for record in recs]
+    return {
+        "version": VERSION,
+        "created": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "sources": sorted(sources),
+        "secrets": secrets,
+        "records": rows,
+    }
+
+
 def build_checkpoint(
     profiles: Iterable[Profile],
     *,
@@ -89,30 +116,21 @@ def build_checkpoint(
     A profile that a given extractor can't read (no such database) is skipped for
     that kind rather than failing the whole checkpoint.
     """
-    if secrets not in SECRET_MODES:
-        raise ValueError(f"secrets must be one of {SECRET_MODES}, not {secrets!r}")
     logger = logger or Logger()
     profiles = list(profiles)
 
-    records: dict[str, list[dict]] = {}
+    records: dict[str, list] = {}
     for kind, extractor in _EXTRACTORS.items():
-        rows: list[dict] = []
+        extracted = []
         for profile in profiles:
             try:
-                extracted = extractor(profile, logger, keyring=keyring)
+                extracted.extend(extractor(profile, logger, keyring=keyring))
             except BrowserProfileError:
                 continue
-            for record in extracted:
-                rows.append(_apply_secrets(kind, record.to_dict(), secrets))
-        records[kind] = rows
+        records[kind] = extracted
 
-    return {
-        "version": VERSION,
-        "created": dt.datetime.now(dt.timezone.utc).isoformat(),
-        "sources": sorted({p.label for p in profiles}),
-        "secrets": secrets,
-        "records": records,
-    }
+    return checkpoint_from_records(
+        records, secrets=secrets, sources={p.label for p in profiles})
 
 
 def _by_identity(kind: str, rows: list[dict]) -> dict[tuple, dict]:

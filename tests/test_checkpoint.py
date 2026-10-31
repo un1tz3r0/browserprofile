@@ -85,3 +85,12 @@ def test_build_with_no_profiles_has_every_kind_empty():
     assert checkpoint["secrets"] == "hash"
     assert set(checkpoint["records"]) == set(cp._EXTRACTORS)
     assert all(rows == [] for rows in checkpoint["records"].values())
+
+
+def test_checkpoint_from_records_fills_only_given_kinds():
+    checkpoint = bp.checkpoint_from_records(
+        {"cookies": [_cookie(value="live")]}, secrets="hash", sources=["pydoll-session"])
+    assert set(checkpoint["records"]) == set(cp._EXTRACTORS)  # full shape, diffable
+    assert checkpoint["sources"] == ["pydoll-session"]
+    assert checkpoint["records"]["cookies"][0]["value"].startswith("sha256:")
+    assert checkpoint["records"]["logins"] == []
