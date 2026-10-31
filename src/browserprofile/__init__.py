@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from .autofill import extract_autofill
 from .bookmarks import extract_bookmarks
+from .checkpoint import build_checkpoint, diff_checkpoints
 from .cookies import extract_cookies
 from .errors import BrowserProfileError, DecryptionError, ProfileNotFoundError
 from .history import extract_history
@@ -51,6 +52,8 @@ __all__ = [
     "extract_logins",
     "extract_credit_cards",
     "copy_site_storage",
+    "build_checkpoint",
+    "diff_checkpoints",
     "Cookie",
     "HistoryEntry",
     "Bookmark",

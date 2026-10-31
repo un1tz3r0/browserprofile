@@ -49,7 +49,19 @@ uv run browserprofile cookies  -b chrome --json
 uv run browserprofile passwords -b chrome
 uv run browserprofile autofill
 uv run browserprofile cards -b chrome
+
+uv run browserprofile checkpoint -b chrome -o before.json   # snapshot all data
+# ... browse ...
+uv run browserprofile checkpoint -b chrome -o after.json
+uv run browserprofile diff before.json after.json           # what changed
 ```
+
+`checkpoint` snapshots every extractor's records to JSON; `diff` reports what was
+added, removed or changed between two snapshots. Secret values (cookie values,
+passwords, card numbers) are stored per `--secrets`: `hash` (default, a
+deterministic digest so a change is detectable without storing the value),
+`exclude` (dropped), or `decrypted` (real values — a plaintext secret file). A
+diff only ever names the fields that changed, never their values.
 
 Common options for the extract commands:
 

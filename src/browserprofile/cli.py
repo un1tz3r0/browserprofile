@@ -10,6 +10,8 @@ from rich.console import Console
 from rich.table import Table
 
 from . import (
+    build_checkpoint,
+    diff_checkpoints,
     extract_autofill,
     extract_bookmarks,
     extract_cookies,
@@ -18,6 +20,7 @@ from . import (
     extract_logins,
     list_profiles,
 )
+from .checkpoint import SECRET_MODES
 from .errors import BrowserProfileError
 from .logger import Logger
 
@@ -101,6 +104,47 @@ def _cmd_extract(args, console):
     console.print(table)
 
 
+def _cmd_checkpoint(args, console):
+    logger = Logger(level=logging.DEBUG if args.verbose else logging.WARNING)
+    keyring = args.keyring.upper() if args.keyring else None
+    checkpoint = build_checkpoint(
+        _select_profiles(args.browser, args.profile),
+        secrets=args.secrets, logger=logger, keyring=keyring)
+    text = json.dumps(checkpoint, indent=2)
+    if args.output:
+        with open(args.output, "w", encoding="utf8") as f:
+            f.write(text)
+        counts = ", ".join(f"{kind} {len(rows)}" for kind, rows in checkpoint["records"].items())
+        print(f"wrote {args.output} (secrets={args.secrets}): {counts}", file=sys.stderr)
+    else:
+        print(text)
+
+
+def _cmd_diff(args, console):
+    with open(args.before, encoding="utf8") as f:
+        before = json.load(f)
+    with open(args.after, encoding="utf8") as f:
+        after = json.load(f)
+    diff = diff_checkpoints(before, after)
+
+    if args.json:
+        print(json.dumps(diff, indent=2))
+        return
+
+    table = Table(title=f"{args.before} → {args.after}")
+    for header in ("data", "added", "removed", "changed"):
+        table.add_column(header, justify="right" if header != "data" else "left")
+    for kind, delta in diff.items():
+        if not any(delta.values()):
+            continue
+        table.add_row(kind, str(len(delta["added"])), str(len(delta["removed"])), str(len(delta["changed"])))
+    console.print(table)
+    for kind, delta in diff.items():
+        for row in delta["changed"]:
+            key = " ".join(f"{k}={v}" for k, v in row["key"].items() if v)
+            console.print(f"  ~ {kind}: {_truncate(key, 70)} ({', '.join(row['changed_fields'])})")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="browserprofile",
@@ -121,6 +165,21 @@ def build_parser() -> argparse.ArgumentParser:
                      "(KWALLET, KWALLET5, KWALLET6, GNOMEKEYRING, BASICTEXT) when "
                      "auto-detection fails outside a desktop session")
 
+    p_checkpoint = sub.add_parser("checkpoint", help="snapshot all profile data to JSON")
+    p_checkpoint.add_argument("-b", "--browser", help="restrict to one browser (e.g. chrome, firefox)")
+    p_checkpoint.add_argument("-p", "--profile", help="restrict to one profile (name or path)")
+    p_checkpoint.add_argument("-v", "--verbose", action="store_true", help="verbose logging to stderr")
+    p_checkpoint.add_argument("--keyring", metavar="NAME", help="force the Linux keyring backend")
+    p_checkpoint.add_argument(
+        "--secrets", choices=SECRET_MODES, default="hash",
+        help="how to store cookie values / passwords / card numbers (default: hash)")
+    p_checkpoint.add_argument("-o", "--output", metavar="FILE", help="write to FILE instead of stdout")
+
+    p_diff = sub.add_parser("diff", help="show what changed between two checkpoints")
+    p_diff.add_argument("before", help="earlier checkpoint JSON file")
+    p_diff.add_argument("after", help="later checkpoint JSON file")
+    p_diff.add_argument("--json", action="store_true", help="output JSON instead of a table")
+
     return parser
 
 
@@ -130,6 +189,10 @@ def main(argv=None) -> int:
     try:
         if args.command == "profiles":
             _cmd_profiles(args, console)
+        elif args.command == "checkpoint":
+            _cmd_checkpoint(args, console)
+        elif args.command == "diff":
+            _cmd_diff(args, console)
         else:
             _cmd_extract(args, console)
     except BrowserProfileError as e:
